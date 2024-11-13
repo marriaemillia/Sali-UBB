@@ -20,13 +20,19 @@ document.addEventListener("DOMContentLoaded", () => {
     "A315", "A316", "A317", "A318", "A319", "A320"
   ];
 
-  // Populate the room dropdown dynamically
+  // Populate the room dropdown
   rooms.forEach(room => {
     const option = document.createElement("option");
     option.value = room;
     option.textContent = room;
     roomSelect.appendChild(option);
   });
+
+  // Validate UBB email
+  function validateUBBEmail(email) {
+    const validDomains = ['@ubbcluj.ro', '@stud.ubbcluj.ro'];
+    return validDomains.some(domain => email.toLowerCase().endsWith(domain));
+  }
 
   createAccountLink.addEventListener("click", (e) => {
     e.preventDefault();
@@ -45,12 +51,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    // Here you would typically send a request to your server to authenticate the user
+    if (!validateUBBEmail(email)) {
+      alert("Please use a valid UBB email address (@ubbcluj.ro or @stud.ubbcluj.ro)");
+      return;
+    }
+
+    // Here you would typically authenticate with a server
     console.log("Login attempted with:", { email, password });
 
-    // Simulate successful login
     loginContainer.style.display = "none";
     plannerContainer.style.display = "block";
+    displayReservations(); // Show reservations after login
   });
 
   signupForm.addEventListener("submit", (e) => {
@@ -59,22 +70,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const password = document.getElementById("signup-password").value;
     const confirmPassword = document.getElementById("signup-confirm-password").value;
 
+    if (!validateUBBEmail(email)) {
+      alert("Please use a valid UBB email address (@ubbcluj.ro or @stud.ubbcluj.ro)");
+      return;
+    }
+
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
       return;
     }
 
-    // Here you would typically send a request to your server to create a new account
+    // Here you would typically create account on server
     console.log("Account creation attempted with:", { email, password });
 
-    // Simulate successful account creation and login
     signupContainer.style.display = "none";
     plannerContainer.style.display = "block";
+    displayReservations(); // Show reservations after signup
   });
 
-  // Load and display reservations for the initially selected room
   roomSelect.addEventListener("change", displayReservations);
-  
+
   reservationForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
@@ -82,7 +97,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const startTime = startTimeInput.value;
     const endTime = endTimeInput.value;
 
-    // Validate inputs
     if (!selectedRoom) {
       alert("Please select a room.");
       return;
@@ -93,10 +107,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Load reservations from localStorage for the selected room
     let reservations = JSON.parse(localStorage.getItem(`reservations_${selectedRoom}`)) || [];
 
-    // Check for overlapping reservations
     if (reservations.some((reservation) =>
       !(new Date(`1970-01-01T${endTime}`) <= new Date(`1970-01-01T${reservation.start}`) ||
         new Date(`1970-01-01T${startTime}`) >= new Date(`1970-01-01T${reservation.end}`))
@@ -105,28 +117,32 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Add reservation for the selected room
     const newReservation = { start: startTime, end: endTime };
     reservations.push(newReservation);
     reservations.sort((a, b) => new Date(`1970-01-01T${a.start}`) - new Date(`1970-01-01T${b.start}`));
 
-    // Save to localStorage and update UI
     localStorage.setItem(`reservations_${selectedRoom}`, JSON.stringify(reservations));
     displayReservations();
 
-    // Reset form
     startTimeInput.value = "";
     endTimeInput.value = "";
   });
 
-  // Display reservations in the list for the selected room
   function displayReservations() {
     const selectedRoom = roomSelect.value;
     reservationsList.innerHTML = "";
 
-    if (!selectedRoom) return;
+    if (!selectedRoom) {
+      reservationsList.innerHTML = "<p>Please select a room to view reservations.</p>";
+      return;
+    }
 
     const reservations = JSON.parse(localStorage.getItem(`reservations_${selectedRoom}`)) || [];
+
+    if (reservations.length === 0) {
+      reservationsList.innerHTML = "<p>No reservations for this room.</p>";
+      return;
+    }
 
     reservations.forEach((reservation, index) => {
       const listItem = document.createElement("li");
@@ -138,13 +154,11 @@ document.addEventListener("DOMContentLoaded", () => {
       reservationsList.appendChild(listItem);
     });
 
-    // Attach delete event listeners
     document.querySelectorAll(".delete-btn").forEach((btn) =>
       btn.addEventListener("click", deleteReservation)
     );
   }
 
-  // Delete reservation
   function deleteReservation(e) {
     const selectedRoom = e.target.getAttribute("data-room");
     const index = parseInt(e.target.getAttribute("data-index"), 10);
@@ -156,6 +170,6 @@ document.addEventListener("DOMContentLoaded", () => {
     displayReservations();
   }
 
-  // Display initial reservations when the page loads
+  // Display reservations when the page loads
   displayReservations();
 });
