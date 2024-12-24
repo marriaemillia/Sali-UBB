@@ -1,0 +1,10 @@
+CREATE DATABASE calendar;
+
+USE calendar;
+
+CREATE TABLE events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  date DATE NOT NULL,
+  time TIME NOT NULL,
+  description VARCHAR(255) NOT NULL
+);
